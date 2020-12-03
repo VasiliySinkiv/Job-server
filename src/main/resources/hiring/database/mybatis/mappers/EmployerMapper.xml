@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hiring.database.mybatis.mappers.EmployerMapper">
+    <resultMap id="resultEmployee" type="hiring.model.Employee">
+        <id property="id" column="id" />
+        <result property="lastName" column="lastname" />
+        <result property="firstName" column="firstname" />
+        <result property="middleName" column="middlename" />
+        <result property="login" column="login" />
+        <result property="password" column="password" />
+        <result property="active" column="active" />
+
+        <collection property="skills" column="id" javaType="java.util.Set" ofType="hiring.model.Skill">
+            <result property="id" column="skill_id" />
+            <result property="name" column="name" />
+            <result property="level" column="level" />
+
+        </collection>
+    </resultMap>
+
+    <select id="getEmployeesByVacancyUsingJoin" parameterType="hashmap" resultMap="resultEmployee">
+
+        SELECT user.id as id, lastname, firstname, middlename, login, password, active, skill.id as skill_id, skill_name.name, skill.level FROM user
+        LEFT JOIN skill ON skill.userid = user.id INNER JOIN skill_name ON skill_name.id = skill.nameid
+        WHERE user.active = true AND user.id IN
+        (SELECT t2.userid FROM user as t1 , skill as t2, requirement as t3
+        WHERE t2.userId = t1.id AND t3.vacancyid = ${vacancyId} AND t3.nameid = t2.nameid
+
+        <if test='selectionType == 1'>
+            AND t2.level &gt;= t3.level
+            GROUP BY t1.id HAVING COUNT(t1.id) = (SELECT COUNT(id) FROM requirement WHERE vacancyid = ${vacancyId}));
+        </if>
+
+        <if test='selectionType == 2'>
+            AND t2.level &gt;= t3.level AND t3.obligatory = true
+            GROUP BY t1.id HAVING COUNT(t1.id) = (SELECT COUNT(id) FROM requirement WHERE vacancyid = ${vacancyId} AND obligatory = true));
+        </if>
+
+        <if test='selectionType == 3'>
+            GROUP BY t1.id HAVING COUNT(t1.id) = (SELECT COUNT(id) FROM requirement WHERE vacancyid = ${vacancyId}));
+        </if>
+
+        <if test='selectionType == 4'>
+            AND t2.level &gt;= t3.level GROUP BY t1.id);
+        </if>
+
+    </select>
+
+</mapper>
